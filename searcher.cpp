@@ -41,8 +41,8 @@ Searcher::~Searcher() {
 }
 
 bool Searcher::canConvertedToUtf8(const QString &string) {
-    for (QChar ch:string) {
-        if (!ch.isPrint()) return false;
+    if (string.lastIndexOf('\0')>=0) {
+        return false;
     }
     return true;
 }
