@@ -49,7 +49,7 @@ bool Searcher::canConvertedToUtf8(const QString &string) {
 
 void addTrgsToIndex(QString const& string, FileIndex *index) {
     if (string.size() < 3) return;
-    uint32_t trg = (static_cast<uint32_t>(string[0].unicode()) << 8) | static_cast<uint32_t>(string[1].unicode());
+    uint32_t trg = 0 | (static_cast<uint8_t>(string[0].unicode()) << 8) | static_cast<uint8_t>(string[1].unicode());
     for (int i = 2; i < string.length(); i++) {
         trg <<= 8;
         trg |= string[i].unicode();
@@ -60,7 +60,7 @@ void addTrgsToIndex(QString const& string, FileIndex *index) {
 QVector<uint32_t> splitStringToTrgs(QString &string) {
     QVector<uint32_t> trgs;
     if (string.size() < 3) return trgs;
-    uint32_t trg = (static_cast<uint32_t>(string[0].unicode()) << 8) | static_cast<uint32_t>(string[1].unicode());
+    uint32_t trg = 0 | (static_cast<uint8_t>(string[0].unicode()) << 8) | static_cast<uint8_t>(string[1].unicode());
     for (int i = 2; i < string.length(); i++) {
         trg <<= 8;
         trg |= string[i].unicode();
