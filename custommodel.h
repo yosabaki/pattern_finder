@@ -5,15 +5,15 @@
 
 class CustomModel : public QFileSystemModel {
 public:
-    CustomModel(QObject *parent) : QFileSystemModel(parent){
-        connect(this, &CustomModel::directoryLoaded, this, &CustomModel::checkLoadedDirectory);
-    }
+    CustomModel(QObject *parent);
 
     int isChecked(QModelIndex const& index) const;
 
     void setLock(bool lock);
 
     void setMarked(QModelIndex const& index, bool mark);
+
+    void recheck();
 
     bool isMarked(QModelIndex const& index) const;
 

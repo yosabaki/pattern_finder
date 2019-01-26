@@ -101,17 +101,11 @@ void mainWindow::watch() {
 }
 
 void mainWindow::requestReindex() {
+    dirModel->recheck();
     QMessageBox::StandardButton alert;
-    alert = QMessageBox::question(this,"Reindex files?","Some files have been changed.", QMessageBox::Yes | QMessageBox::No);
-    if (alert == QMessageBox::No) {
+    alert = QMessageBox::information(this,"You should reindex files","Some files have been changed.", QMessageBox::Ok);
+    if (alert == QMessageBox::Ok) {
         return;
-    } else {
-        if (searcher!= nullptr) {
-            searcher->cancel();
-            searchWatcher.waitForFinished();
-            watchWatcher.waitForFinished();
-        }
-        watch();
     }
 }
 

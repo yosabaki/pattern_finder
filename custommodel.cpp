@@ -1,5 +1,10 @@
 #include "custommodel.h"
 
+
+CustomModel::CustomModel(QObject *parent): QFileSystemModel(parent){
+    connect(this, &CustomModel::directoryLoaded, this, &CustomModel::checkLoadedDirectory);
+}
+
 QVariant CustomModel::data(const QModelIndex& index, int role) const {
     if (role == Qt::BackgroundColorRole) {
 
@@ -93,6 +98,10 @@ void CustomModel::setChildrenCheck(QModelIndex const& index, bool check) {
     for (int i = 0; i < rowCount(index); i++) {
         setChildrenCheck(this->index(i, 0, index), check);
     }
+}
+
+void CustomModel::recheck() {
+    setData(index("/"), QVariant(), Qt::CheckStateRole);
 }
 
 bool CustomModel::setData(const QModelIndex& index, const QVariant& value, int role) {
