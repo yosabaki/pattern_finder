@@ -29,9 +29,11 @@ private:
 
     QVariant data(const QModelIndex& index, int role) const;
 
-    void setChildrenCheck(QModelIndex index, bool check);
+    void setChildrenMark(QModelIndex const& index, bool mark);
 
-    void setParentCheck(QModelIndex index, int prevValue, int currValue);
+    void setChildrenCheck(QModelIndex const& index, bool check);
+
+    void setParentCheck(QModelIndex const& index, int prevValue, int currValue);
 
     Qt::ItemFlags flags(const QModelIndex& index) const;
 

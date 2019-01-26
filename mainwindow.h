@@ -10,6 +10,7 @@
 #include <QPoint>
 #include <QListWidget>
 #include <memory>
+#include <QFutureWatcher>
 
 namespace Ui {
 class MainWindow;
@@ -46,9 +47,9 @@ public slots:
     void addItem(QString filePath);
 private:
     std::unique_ptr<Searcher> searcher;
+    QFutureWatcher<void> searchWatcher, watchWatcher;
     QString patternString;
     QListWidgetItem *clickedItem;
-    QThread *thread;
     CustomModel *dirModel;
     QString curr_dir;
     std::unique_ptr<Ui::MainWindow> ui;

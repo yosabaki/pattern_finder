@@ -41,29 +41,45 @@ Searcher::~Searcher() {
 }
 
 bool Searcher::canConvertedToUtf8(const QString &string) {
-    if (string.lastIndexOf('\0')>=0) {
+    if (string.lastIndexOf('\0') >= 0) {
         return false;
     }
     return true;
 }
 
 void addTrgsToIndex(QString const& string, FileIndex *index) {
-    if (string.size() < 3) return;
-    uint32_t trg = 0 | (static_cast<uint8_t>(string[0].unicode()) << 8) | static_cast<uint8_t>(string[1].unicode());
-    for (int i = 2; i < string.length(); i++) {
+    QVector<uint8_t> bytes;
+    for (int i = 0; i < string.size(); i++) {
+        ushort ch = string[i].unicode();
+        if (ch > UINT8_MAX) {
+            bytes.push_back(ch >> 8);
+        }
+        bytes.push_back(ch & 0xFF);
+    }
+    if (bytes.size() < 3) return;
+    uint32_t trg = 0 | (bytes[0] << 8) | bytes[1];
+    for (int i = 2; i < bytes.size(); i++) {
         trg <<= 8;
-        trg |= string[i].unicode();
+        trg |= bytes[i];
         index->insertTrg(trg & 0xFFFFFF);
     }
 }
 
 QVector<uint32_t> splitStringToTrgs(QString &string) {
     QVector<uint32_t> trgs;
-    if (string.size() < 3) return trgs;
-    uint32_t trg = 0 | (static_cast<uint8_t>(string[0].unicode()) << 8) | static_cast<uint8_t>(string[1].unicode());
-    for (int i = 2; i < string.length(); i++) {
+    QVector<uint8_t> bytes;
+    for (int i = 0; i < string.size(); i++) {
+        ushort ch = string[i].unicode();
+        if (ch > UINT8_MAX) {
+            bytes.push_back(ch >> 8);
+        }
+        bytes.push_back(ch & 0xFF);
+    }
+    if (bytes.size() < 3) return trgs;
+    uint32_t trg = 0 | (bytes[0] << 8) | bytes[1];
+    for (int i = 2; i < bytes.size(); i++) {
         trg <<= 8;
-        trg |= string[i].unicode();
+        trg |= bytes[i];
         trgs.push_back(trg & 0xFFFFFF);
     }
     return trgs;
@@ -101,8 +117,7 @@ void Searcher::setPattern(const QString &string) {
     pattern = string;
 }
 
-bool containsTrg(QString &pattern, FileIndex *index) {
-    QVector<uint32_t> pattern_trgs = splitStringToTrgs(pattern);
+bool containsTrg(QVector<uint32_t> pattern_trgs, FileIndex *index) {
     for (uint32_t const& i : pattern_trgs) {
         if (!index->containsTrg(i)) {
             return false;
@@ -116,7 +131,8 @@ void Searcher::search() {
         if (isCanceled) {
             break;
         }
-        if (containsTrg(pattern, index)) {
+        QVector<uint32_t> pattern_trgs = splitStringToTrgs(pattern);
+        if (containsTrg(pattern_trgs, index)) {
             QFile file(index->getFilePath());
             if (file.open(QFile::ReadOnly)) {
                 while (!file.atEnd()) {
@@ -129,8 +145,6 @@ void Searcher::search() {
                         break;
                     }
                 }
-            } else {
-                qDebug()<<"LOL";
             }
         }
     }

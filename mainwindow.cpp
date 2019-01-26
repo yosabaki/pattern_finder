@@ -17,10 +17,10 @@
 #include <QDesktopServices>
 #include <QScrollBar>
 #include <QFutureWatcher>
+#include <QPainter>
 #include <QtConcurrent/QtConcurrent>
 
 mainWindow::mainWindow(QWidget *parent):  QMainWindow(parent), searcher(nullptr), ui(new Ui::MainWindow) {
-    thread = nullptr;
     ui->setupUi(this);
     setGeometry(QStyle::alignedRect(Qt::LeftToRight, Qt::AlignCenter, size(), qApp->desktop()->availableGeometry()));
 
@@ -70,9 +70,8 @@ mainWindow::mainWindow(QWidget *parent):  QMainWindow(parent), searcher(nullptr)
 mainWindow::~mainWindow() {
     cancelWatch();
     cancelSearch();
-    if (thread!=nullptr) {
-        while (thread->isRunning());
-    }
+    searchWatcher.waitForFinished();
+    watchWatcher.waitForFinished();
     delete dirModel;
 }
 
@@ -96,7 +95,7 @@ void mainWindow::watch() {
     connect(searcher.get(), &Searcher::requestReindex, this, &mainWindow::requestReindex);
     connect(searcher.get(), &Searcher::progressBarChanged, this, &mainWindow::setProgressBar);
     connect(searcher.get(), &Searcher::finished, this, &mainWindow::unblockWatch);
-    QtConcurrent::run(searcher.get(), &Searcher::process);
+    watchWatcher.setFuture(QtConcurrent::run(searcher.get(), &Searcher::process));
 }
 
 void mainWindow::requestReindex() {
@@ -152,7 +151,7 @@ void mainWindow::search() {
     connect(searcher.get(), &Searcher::progressBarChanged, this, &mainWindow::setProgressBar);
     connect(searcher.get(), &Searcher::finished, this, &mainWindow::unblockSearch);
     connect(searcher.get(), &Searcher::itemAdded, this, &mainWindow::addItem);
-    QtConcurrent::run(searcher.get(), &Searcher::search);
+    searchWatcher.setFuture(QtConcurrent::run(searcher.get(), &Searcher::search));
 }
 
 void mainWindow::blockSearch() {
@@ -201,6 +200,18 @@ void mainWindow::showFile(QListWidgetItem *item) {
             if (line.indexOf(patternString) >= 0) {
                 ui->showPatternLines->append(QString::number(count)+':'+line);
             }
+        }
+        QTextCursor cursor(ui->showPatternLines->document());
+        QTextCharFormat fmt;
+        fmt.setBackground(QColor(200,200,255));
+        QString lines = ui->showPatternLines->toPlainText();
+        int pos = lines.indexOf(':');
+        pos = lines.indexOf(patternString, pos + 1);
+        while (pos >= 0) {
+            cursor.setPosition(pos, QTextCursor::MoveAnchor);
+            cursor.setPosition(pos + patternString.length(), QTextCursor::KeepAnchor);
+            cursor.setCharFormat(fmt);
+            pos = lines.indexOf(patternString, pos + 1);
         }
     } else {
         ui->showPatternLines->append(file.errorString());

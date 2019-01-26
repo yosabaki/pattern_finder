@@ -2,7 +2,8 @@
 
 QVariant CustomModel::data(const QModelIndex& index, int role) const {
     if (role == Qt::BackgroundColorRole) {
-        return (isMarked(index) ? QColor(0,0,0) : QColor(255,255,255));
+
+        return (isMarked(index) ? QColor(200,200,255) : QColor(255,255,255));
     }
     if (role == Qt::CheckStateRole) {
         return isChecked(index);
@@ -15,7 +16,16 @@ Qt::ItemFlags CustomModel::flags(const QModelIndex& index) const {
 }
 
 void CustomModel::setMarked(QModelIndex const& index, bool mark) {
-    marked[filePath(index)] = mark;
+    setChildrenMark(index, mark);
+}
+
+void CustomModel::setChildrenMark(QModelIndex const& index, bool mark) {
+    QString path = filePath(index);
+    marked[path] = mark;
+    emit dataChanged(index, index);
+    for (int i = 0; i < rowCount(index); i++) {
+        setChildrenMark(this->index(i, 0, index), mark);
+    }
 }
 
 bool CustomModel::isMarked(const QModelIndex &index) const {
@@ -39,12 +49,15 @@ int CustomModel::isChecked(const QModelIndex &index) const {
 
 void CustomModel::checkLoadedDirectory(const QString &path) {
     QModelIndex index = this->index(path);
+    if (marked[path]) {
+        setChildrenMark(index, true);
+    }
     if (checkedNumber[path] > 0) {
         setChildrenCheck(index, true);
     }
 }
 
-void CustomModel::setParentCheck(QModelIndex index, int prevValue, int currValue) {
+void CustomModel::setParentCheck(QModelIndex const& index, int prevValue, int currValue) {
     QString path = filePath(index.parent());
     int nextPrev = checkedNumber[path];
     if (currValue == prevValue) return;
@@ -69,7 +82,7 @@ void CustomModel::setParentCheck(QModelIndex index, int prevValue, int currValue
     }
 }
 
-void CustomModel::setChildrenCheck(QModelIndex index, bool check) {
+void CustomModel::setChildrenCheck(QModelIndex const& index, bool check) {
     QString path = filePath(index);
     if (check) {
         checkedNumber[path] = (rowCount(index) == 0? 1: rowCount(index) * 2);
