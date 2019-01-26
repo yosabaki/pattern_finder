@@ -68,10 +68,12 @@ mainWindow::mainWindow(QWidget *parent):  QMainWindow(parent), searcher(nullptr)
 }
 
 mainWindow::~mainWindow() {
-    cancelWatch();
-    cancelSearch();
-    searchWatcher.waitForFinished();
-    watchWatcher.waitForFinished();
+    if (searcher!=nullptr) {
+        cancelWatch();
+        cancelSearch();
+        searchWatcher.waitForFinished();
+        watchWatcher.waitForFinished();
+    }
     delete dirModel;
 }
 
@@ -104,6 +106,11 @@ void mainWindow::requestReindex() {
     if (alert == QMessageBox::No) {
         return;
     } else {
+        if (searcher!= nullptr) {
+            searcher->cancel();
+            searchWatcher.waitForFinished();
+            watchWatcher.waitForFinished();
+        }
         watch();
     }
 }
@@ -137,9 +144,10 @@ void mainWindow::unblockWatch() {
 void mainWindow::search() {
     ui->listWidget->clear();
     patternString = ui->patternEdit->text();
-    if (patternString.size() < 3) {
+    if (patternString.size() < 3 || patternString.size() > 1000) {
         QMessageBox::StandardButton alert;
-        alert = QMessageBox::information(this,"can't search","Pattern string must be bigger than 2 symbols" ,QMessageBox::Ok);
+        QString message = (patternString.size()<3?"Pattern string must be bigger than 2 symbols": "Pattern string is too long. it mast be shorter than 1000 symbols");
+        alert = QMessageBox::information(this,"can't search", message ,QMessageBox::Ok);
         if (alert == QMessageBox::Ok) {
             return;
         }
@@ -194,11 +202,13 @@ void mainWindow::showFile(QListWidgetItem *item) {
     QFile file(item->text());
     if (file.open(QFile::ReadOnly)) {
         int count = 0;
+        static const int MAX_SHOW_LINE_SIZE = 1000;
         while(!file.atEnd()) {
             count++;
             QString line = file.readLine();
-            if (line.indexOf(patternString) >= 0) {
-                ui->showPatternLines->append(QString::number(count)+':'+line);
+            int index = line.indexOf(patternString);
+            if (index >= 0) {
+                ui->showPatternLines->append(QString::number(count)+':'+(line.size()<MAX_SHOW_LINE_SIZE ? line : (index==0?"":"...")+line.mid(std::max(0,index - 10),patternString.size()+20)+"..."));
             }
         }
         QTextCursor cursor(ui->showPatternLines->document());

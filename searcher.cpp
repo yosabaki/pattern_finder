@@ -94,13 +94,10 @@ void Searcher::indexFile(FileIndex *index) {
         return;
     }
     QTextStream in(&file);
+    QString data;
     while (!in.atEnd()) {
 
-        QString data = in.readLine();
-        if (data.size()>READ_BUFFER_SIZE) {
-            index->clearTrgs();
-            return;
-        }
+        data += in.read(READ_BUFFER_SIZE);
         if (!canConvertedToUtf8(data)) {
             index->clearTrgs();
             return;
@@ -110,6 +107,7 @@ void Searcher::indexFile(FileIndex *index) {
             index->clearTrgs();
             return;
         }
+        data = data.mid(data.size()-4, 4);
     }
 }
 
@@ -127,23 +125,26 @@ bool containsTrg(QVector<uint32_t> pattern_trgs, FileIndex *index) {
 }
 
 void Searcher::search() {
-    for (auto index : fileIndecies){
+    for (int i = 0; i< fileIndecies.size(); ++i){
         if (isCanceled) {
             break;
         }
+        emit progressBarChanged((i * 100) / fileIndecies.size());
         QVector<uint32_t> pattern_trgs = splitStringToTrgs(pattern);
-        if (containsTrg(pattern_trgs, index)) {
-            QFile file(index->getFilePath());
+        if (containsTrg(pattern_trgs, fileIndecies[i])) {
+            QFile file(fileIndecies[i]->getFilePath());
             if (file.open(QFile::ReadOnly)) {
+                QString line;
                 while (!file.atEnd()) {
                     if (isCanceled) {
                         break;
                     }
-                    QString line = file.readLine();
+                    line += file.read(1000);
                     if (line.indexOf(pattern) >= 0) {
-                        emit itemAdded(index->getFilePath());
+                        emit itemAdded(fileIndecies[i]->getFilePath());
                         break;
                     }
+                    line = line.mid(line.size()-pattern.size(), pattern.size());
                 }
             }
         }
